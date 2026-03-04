@@ -149,3 +149,23 @@ You can add shell aliases inside the container by adding the following to a Dock
 RUN echo "alias l='ls -alf'" >> /root/.bashrc
 # For Alpine/Sh users
 RUN echo "alias l='ls -alf'" >> /etc/profile
+
+
+### Persist data
+container are stateless and do not persist data
+persistent data are stored outside the container in what we call volumes
+
+a volume is a mapping solution that map a folder on the host machine 
+to a logical folder inside the container
+
+volumes can point to a logical folder inside the container or to a local one (local vs bind mounts).
+
+cli:
+    docker create volume <volume-name>  -> creating a volume
+    docker volume ls                    -> list all the volumes
+    docker volume inspect <volume-name> -> volume info
+    docker volume rm <volume-name>      -> remove a volume
+                                           can be removed only after all the attached container are removed
+    
+run a container with a volume:
+    docker run -d --name <container-name> -v logical/folder <image-name>:<tag>
