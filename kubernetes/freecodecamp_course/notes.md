@@ -2,55 +2,72 @@
 
 [YT course](https://www.youtube.com/watch?v=kTp5xUtcalw)
 
-
 containers / dockers / kubernetes
 
 ### Microservices concepts
-loosely coupled services, fine grained and lightweight communication (usually grpc)
+based on the assumption of breaking down monolithic application with
+loosely coupled services connected with fine grained and lightweight communication (usually grpc apis for performance).
 
-segregates functionality and sresponsibiility
-piece can scale independnetly
-different team, different languages, different database
-deployed and scale independelty
+functionality and responsibiilities are separated (almost).
 
-break in small unit
-strangler facade pattern for migration -> martin fawler blog
+different pieces can be independently managed with small teams, different languages can be used as well as different databases
+for persisting data. 
+
+they can be scaled and deployed independently
+
+migration strategy, strangler facade pattern -> martin fawler blog
+    you put a facade piece on top of the actual services and you start migrating piece by piece
 
 
-antipaterns:
+anipatterns:
     unnecessary complexity
-    overnegineering
-    security issues
-    processes and overhead
-    new figures required
-    not magic, comes with complexity
+    overengineering
+    security issues with communication
+    processes overhead
+    new figures specialised figures required (devops)
+    it is not magic, and it comes with complexities
     
-Pro and cons:
-improved fault isolation
-eliminate vendor or tech lock in
-easier and faster to deploy and sclae
+pro:
+    improved fault isolation
+    eliminate vendor or technology lock in
+    easier and faster to deploy and scale
 
-complexity
-system and integration testing harder
-multiple database to manage
-latency issues
-transient errors
-processes added for deployment
-multiple point of failure
-security
+cons:
+    development and process complexity
+    system and integration testing harder to achieve
+    potential multiple database to manage
+    latency issues (partially solved with grpc)
+    transient errors (mostly due to network fallibility)
+    new processeses added for automating deployments
+    multiple point of failures
+    security
 
 
 ### Cloud native
-uses container services, meshes Microservices, immutable adn disposable infrastructure (never update but replaced with new version) and declerative api
-loosly copplple system, automation , frequent deployment
-ecosystem run on opensource project (like kubernetes)
+containers & orchestration:
+    application and services packed in container and orchestrated via kube
+    
+immutable and disposable infrastructure:
+    we don't patch or update, you dispose and replace with a new version
+    
+declarative:
+    define a desired state (like run at 85% capacity, or run 3 copies of the service)
 
-is about spped and agility in deployment
-clean code -> ddd -> microservices -> kube
+service meshes:
+    communication are managed via service meshes used to handle security, routing and observability
+
+services are loosely coupled
+
+ci/cd pipelines and testing is automated
+
+movement primarily lead by open source technologies
+
+is all about speed and agility in deployment
+    clean code -> ddd -> microservices -> kube
 
 easier with new project
 
-check the cloud native map from the cloud native foundation (trail map)
+check the trail map
 
 ### Containers introduction
 faster to deploy
@@ -76,55 +93,59 @@ orchestrator
     
     
 ### Docker
-contaier runtime
-command line tool
-dockerfile for building containers
+offer:
+    contaier runtime
+    command line tool
+    dockerfile for building containers
 
-docker desktop easier starting point
-    you can have the remote hub for having images saved in the cloud
-    like git and github
+docker desktop easier starting point:
+    can be conected with remote registry (~ to git and github with repositories) with docker hub
 
-cli
-    docker info -> system info, all container and system information
-    docker version -> system version, for docker engine
-    docker login -> log in docker registry (default to docker hub)
-    docker pull <image-name> -> pull image from registry
-    docker run (-d) <image-name> -> run containers (detached)
-    docker start <container-name>-> start stopped containers
-    docker stop <container-name>-> stop running containers
-    docker ps (-a) -> list running (and stopped) containers
-    docker kill <container-name> -> kill containers, usually not used
-    docker image inspect <image-name> -> get image info
-    docker run --memory="256m" <image-name> -> max memory
-    docker run --cpus=".5" <image-name> -> max cpu
-    docker rm <container-name> -> remove stopped container from memory
-    docker rm $(docker ps -a -q) -> remove all stopped conatiners from memory
-    docker images -> list local image
-    docker rmi <image-name> -> remove the image
-    docker run -it <image-name> -- /bin/bash -> attach shell
-    docker container exec -it <container-name> -- bash -> attach to a running container
+cli:
+    docker info     -> system info, all container and system information
+    docker version  -> system version, for docker engine
+    docker login    -> log in docker registry (default to docker hub)
+    docker ps (-a)  -> list running (and stopped) containers
+    docker pull <image-name>        -> pull image from registry
+    docker run (-d) <image-name>    -> run containers (detached)
+    docker start <container-name>   -> start stopped containers
+    docker stop <container-name>    -> stop running containers
+    docker kill <container-name>    -> kill containers, usually not used
+    docker image inspect <image-name>       -> get image info
+    docker run --memory="256m" <image-name> -> run container with max memory limit
+    docker run --cpus=".5" <image-name>     -> run container with max cpu limit
+    docker rm <container-name>      -> remove stopped container from memory
+    docker rm $(docker ps -a -q)    -> remove all stopped conatiners from memory
+    docker images                   -> list local image
+    docker rmi <image-name>         -> remove the image
+    docker run -it <image-name> -- /bin/bash            -> run a container and attach a shell directly
+    docker container exec -it <container-name> -- bash  -> attach shell to a running container
+    docker build -t [name:tag] .                -> build with dockerfile in current directory
+    docker build -t [name:tag] -f <filename>    -> build with specific filename for the docker file, usually in different location
+    docker tag <image-name> [name:tag]          -> tag an existing image, specify version number
     
-    # example
-    docker run --publish 80:80 --name <container-name> <image-name>
     
-Docker Image: A read-only blueprint or snapshot. It contains everything an application needs to run: the code, libraries, dependencies, and environment settings. It is "frozen" and cannot be changed once built.
+Docker Image: 
+    A read-only blueprint or snapshot. 
+    It contains everything an application needs to run: the code, libraries, dependencies, and environment settings. 
+    It is "frozen" and cannot be changed once built.
 
-Docker Container: A live, running instance of an image. When you "run" an image, it becomes a container. Unlike an image, a container is a process that exists in memory and has a writable layer where it can store temporary data. 
-
-Tagging as latest
-
-todo:
-Adding aliases inside the container? How to?
+Docker Container: 
+    A live, running instance of an image. 
+    When you "run" an image, it becomes a container. 
+    Unlike an image, a container is a process that exists in memory and has a writable layer where it can store temporary data. 
 
 
-build containers
-    docker build -t [name:tag] . -> dockerfile in current directory
-    docker build -t [name:tag] -f <filename> -> dockerfile in != location
-    docker tag <image-name> [name:tag] -> tag an existing image, sepcify version number
-    
 Dockerfile contains building steps for creating and run the containers
 
-Tagging
-    creat a target image
-    name:tag
-    repository/name:tag -> in case of remote or differnte repository
+Tagging:
+    create a target image
+    can be done with:
+        [name:tag] combination
+        [repository/name:tag] -> in case of remote or different repository
+
+You can add shell aliases inside the container by adding the following to a Dockerfile:
+# For Bash users
+RUN echo "alias l='ls -alf'" >> /root/.bashrc
+# For Alpine/Sh users
+RUN echo "alias l='ls -alf'" >> /etc/profile
