@@ -145,9 +145,9 @@ Tagging:
         [repository/name:tag] -> in case of remote or different repository
 
 You can add shell aliases inside the container by adding the following to a Dockerfile:
-# For Bash users
+#### For Bash users
 RUN echo "alias l='ls -alf'" >> /root/.bashrc
-# For Alpine/Sh users
+#### For Alpine/Sh users
 RUN echo "alias l='ls -alf'" >> /etc/profile
 
 
