@@ -172,3 +172,60 @@ cli:
 Run a container with a volume:
     docker run -d --name <container-name> -v data:/var/lib/data <image-name>:<tag> --> volumes
     docker run -d --name <container-name> -v /host/path:/container/path <image-name>:<tag> --> bind mounts
+
+
+### Docker compose
+Docker compose build multi container app using single yaml file
+
+It is great for local development and testing
+
+cli:
+    docker compose build                    -> build containers
+    docker compose start                    -> start containers
+    docker compose stop                     -> stop containers
+    docker compose up -d                    -> build and start
+    docker compose ps                       -> list what is running
+    docker compose rm                       -> remove from memory
+    docker compose down                     -> stop and remove
+    docker compose logs  (-f)               -> get the logs (tailing logs) 
+    docker compose exec <container> bash    -> run a command into a container
+    docker compose -p <project-name> up -d  -> run project, allow you to run multiple instance of your application
+    docker compose ls                       -> list running project
+    docker compose cp <container-id>:[src_path] [dest_path] -> copy files from the container
+    docker compose cp [src_path] <container-id>:[dest_path] -> copy files to the container
+    docker compose up -d -e ENV_VAR=VALUE   -> compose up and override env variable
+
+Compose files can contain resource limit for single or multiple containers
+
+They can reference local env variable like this
+```yaml
+services:
+    db:
+        image: "postgres:${POSTGRES_VERSION}"
+```
+
+Entire env_file can be specified and addedd to the containers
+
+Networks can be defined to constraint communication and visibility
+
+Dependencies on other container can be specified
+
+Global volumes can be defined and potentially used from different containers 
+
+Volumes can be made read or write only by appending :ro / rw at the end of the mapping -> vol-name:/etc/data:ro
+
+It is possible to define restart policy --> (default)no, on-failure, unless-stopped, always
+
+
+### Container registries
+Central repo for container images
+
+They can be private/public
+
+Default registry is dockerhub, you can use the azure/google/aws registry as well
+
+High-level process
+-> login into repository
+-> build image
+-> docker push  -> push local image to container
+-> docker pull  -> pull remote container locally
