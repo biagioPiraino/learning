@@ -158,14 +158,17 @@ If data persistency is required we store it outside the container in what is cal
 
 A volume is an object used a folder on the host machine to a logical folder inside the container.
 
-Volumes can point to a logical folder inside the container or to a local one (local vs bind mounts).
+Volumes are stored in a part of the host filesystem that is managed by Docker (usually /var/lib/docker/volumes/ on Linux). This is the best way to persist data in Docker.
+
+Bind Mounts is another way to persist data: These link a specific, user-defined path on the host machine (like /Users/you/project/config) to a folder in the container. These are great for source code during development.
 
 cli:
-    docker create volume <volume-name>  -> creating a volume
+    docker volume create <volume-name>  -> creating a volume
     docker volume ls                    -> list all the volumes
     docker volume inspect <volume-name> -> volume info
     docker volume rm <volume-name>      -> remove a volume
                                            can be removed only after all the attached container are removed
     
 Run a container with a volume:
-    docker run -d --name <container-name> -v logical/folder <image-name>:<tag>
+    docker run -d --name <container-name> -v data:/var/lib/data <image-name>:<tag> --> volumes
+    docker run -d --name <container-name> -v /host/path:/container/path <image-name>:<tag> --> bind mounts
