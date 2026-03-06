@@ -152,13 +152,13 @@ RUN echo "alias l='ls -alf'" >> /etc/profile
 
 
 ### Persist data
-container are stateless and do not persist data
-persistent data are stored outside the container in what we call volumes
+Container per se are stateless and ephimeral entities and therefor they do not persist data when stopped.
 
-a volume is a mapping solution that map a folder on the host machine 
-to a logical folder inside the container
+If data persistency is required we store it outside the container in what is called a volume.
 
-volumes can point to a logical folder inside the container or to a local one (local vs bind mounts).
+A volume is an object used a folder on the host machine to a logical folder inside the container.
+
+Volumes can point to a logical folder inside the container or to a local one (local vs bind mounts).
 
 cli:
     docker create volume <volume-name>  -> creating a volume
@@ -167,5 +167,5 @@ cli:
     docker volume rm <volume-name>      -> remove a volume
                                            can be removed only after all the attached container are removed
     
-run a container with a volume:
+Run a container with a volume:
     docker run -d --name <container-name> -v logical/folder <image-name>:<tag>
