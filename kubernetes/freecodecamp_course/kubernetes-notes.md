@@ -1,192 +1,237 @@
 ### Kubernetes concepts
 
-It is the leading container orchestration tool
+Overview
+    The leading container orchestration tool.
+    Vendor neutral and open source.
+    Runs on all major cloud providers.
+    Provides a unified API.
 
-It is vendor neutral, open source and run on all cloud providers
+Capabilities
+    Service discovery and load balancing.
+    Storage orchestration.
+    Automated rollouts and rollbacks.
+    Self-healing (restarting/replacing failed containers).
+    Secret and configuration management.
 
-What it can do:
+Limitations
+    Does not deploy or build applications or containers.
+    Does not provide application-level services (e.g., native cache, databases, or message buses).
 
-Service discovery and load balancing
-Storage Orchestration
-Rollouts and rollbacks
-Self Healing
-Secret and configuration management
-It has an unified API
+---
 
-What it can't do:
+### Architecture
 
-Deploy or build application or containers
+1. The Control Plane (Master)
+    The Control Plane makes global decisions about the cluster and detects/responds to events.
 
-It doesn't provide application level services like cache, databases, or message buses
+    - kube-apiserver: It is the central hub that all components and users (via kubectl) talk to.
 
-Architecture in details
+    - etcd: A consistent and highly-available key-value store that holds all cluster data. It serves as source of truth.
 
-##### todo
+    - kube-scheduler: It watches for new Pods and assigns them to a specific Node based on resource availability.
 
-master node -> control plane
-it runs controller and servier
+    - kube-controller-manager: It runs control loops to ensure the current state of the cluster matches the desired state (e.g., if a node goes down, it notices and starts new pods).
 
-container run in a pod -> pod run in a node -> node eun in cluster
+    - cloud-controller-manager: It links your cluster into your cloud provider's API (AWS, GCP, Azure) to manage things like load balancers and storage.
 
-##### todo
 
-### Run kube locally
+2. Worker Nodes
 
-docker desktop => only one node
+    These are the machines (VMs or physical servers) that actually run your applications.
 
-microk8s, minikube, kind => multiple node runnable
+    - Kubelet: An agent that runs on each node to ensure that the containers described in Pod specifications are running and healthy. It manage pods lifecycle.
 
-### Cli and context
+    - Kube-proxy: It maintains network rules on nodes, allowing network communication to your Pods from inside or outside the cluster.
 
-kube-apiserver, desired state on a yaml file and send to api server via cli
+    - Container Runtime: The software responsible for actually running the containers (e.g., containerd, CRI-O).
 
-kubectl -> it communicate with api server
+    - Pod: The smallest unit in Kubernetes; a wrapper that hosts one or more containers.
+
+
+How they work together
+
+    User sends a command (e.g., kubectl apply) to the API Server.
+    The API Server updates etcd.
+    The Scheduler notices the new requirement and picks a Worker Node.
+    The Kubelet on that node receives the instruction and tells the Container Runtime to start the container.
+    Kube-proxy sets up the networking so users can reach the app.
+
+
+Hierarchical structure
+cluster -> nodes -> pods -> containers
+
+---
 
 ### Context
 
-configuration file is stoerd in $home/.kube/config -> YAML file
-a group of access parameters to a k8 cluster
-contain cluster, user and namespace, all kubectl command run against a cluster
+A context is a group of access parameters that defines which cluster, user, and namespace kubectl commands should target.
 
-kubectl config current-context
-kubectl config get-contexts
-kubectl config use-context <context-name>
-kubectl config delete-context <context-name>
-kubectl config rename-context <old-name> <new-name>
+FILE LOCATION:
+The configuration is typically stored in: $HOME/.kube/config (YAML format).
 
-### Create resource in kube
+COMPONENTS:
+- Cluster: The specific Kubernetes cluster.
+- User: The credentials used to authenticate.
+- Namespace: The default namespace for the context.
 
-declarative
-using kubectl and yaml to define desired state
-suggested to use since it's repeateble and movable
-get template from kubernetes.io or directly from vscode
+CLI COMMANDS:
+- View current context:
+  kubectl config current-context
 
-imperative
-kubectl commands, great for learning, development and troubleshooting
+- List all contexts:
+  kubectl config get-contexts
 
-deployments
-kubectl create -f <yaml-file>
-kubectl get deploy -> get deployment (pod) inside a cluster
-kubectl delete deploy <deploy-name>
+- Switch context:
+  kubectl config use-context <context-name>
+
+- Delete a context:
+  kubectl config delete-context <context-name>
+
+- Rename a context:
+  kubectl config rename-context <old-name> <new-name>
+
+---
 
 ### Namespaces
 
-allow group resources (dev, test, prod)
+DEFINITION
+Namespaces are logical partitions within a single physical cluster used to group and isolate resources. They are commonly used to separate environments such as dev, test, and prod.
 
-like logical namespace to group resources
+CORE CONCEPTS
+- Logical Isolation: Used to group resources logically (dev, test, prod).
+- Cascading Deletion: Deleting a namespace automatically deletes all objects within it.
+- Connectivity: Objects in one namespace can typically access objects in other namespaces unless restricted.
+- Policies: Network policies and resource quotas are defined at the namespace level.
 
-delete namespace delete all child objects
-
-object in one namespace cna acces objects in a != one
+YAML EXAMPLES
 
 ```yaml
-# namespace definiton
+1. Namespace Definition:
 apiVersion: v1
 kind: Namespace
 metadata:
     name: prod
 
-# pod definition
+2. Pod Assignment:
 apiVersion: v1
 kind: Pod
 metadata:
     name: application-name
-    namespace: prod # referenced here
+    namespace: prod # Reference the namespace here
 spec:
     containers:
     - name: nginx-container
       image: nginx
 ```
 
-At a namespace leve you can set network policy definition and resource qoute definition
+CLI COMMANDS (Alias: ns)
+- List all namespaces:
+  kubectl get ns
 
-# ns is shortcut for namespaces
+- Create a namespace:
+  kubectl create ns <namespace-name>
 
-kubectl get ns
-kubectl config set-context --current --namespace=<namespace-name> # used to change namespace in current context
-kubeclt create ns <namespace-name>
-kubeclt delete ns <namespace-name>
-kubeclt get pods --all-namespaces
-kubeclt get pods -n <namespace-name>
+- Delete a namespace:
+  kubectl delete ns <namespace-name>
 
-### Nodes
+- Switch current context namespace:
+  kubectl config set-context --current --namespace=<namespace-name>
 
-##### Master node => control plane
+- List pods in a specific namespace:
+  kubectl get pods -n <namespace-name>
 
-Contains:
+- List pods in all namespaces:
+  kubectl get pods --all-namespaces
 
-- kube-controller-manager
-- cloud-controller-manager
-- kube-apiserver -> opnly component that communicate with etcd
-- kube-scheduler
-- etcd -> key value datasroe for cluster state data
+---
 
-Dont run application on the master node
+### Create resources
 
-#### kube-apiserver
+1. DECLARATIVE (Recommended)
+- Method: Uses YAML files and 'kubectl apply' or 'create' to define the "Desired State."
+- Benefits: Repeatable, version-controllable (GitOps), and portable.
+- Sources: Official kubernetes.io documentation or IDE extensions (VS Code).
 
-Rest interface
-save state to datasrtore
-client interact with it and never direclty in the etcd
+2. IMPERATIVE
+- Method: Direct 'kubectl' commands.
+- Best Use: Learning, rapid development, and troubleshooting.
 
-#### etcd
+CLI COMMANDS
+- Create from file:
+  kubectl create -f <yaml-file>
 
-datastore oor storing cluster state
-single source of truth
-not a database or datastore for application to use
+- List deployments:
+  kubectl get deploy
 
-#### kube-control-manager
+- Delete deployment:
+  kubectl delete deploy <deploy-name>
 
-the controller of controllers
-it runs controllers:
+---
 
-- node controller
-- replication controller
-- endpoints controller
-- service account & token controllers
+### Run Kubernetes locally
 
-#### cloud-control-manager
+docker desktop -> you can only run one node
+microk8s, minikube, kind => you can run multiple nodes
 
-interact with the cloud provider controllers
+---
 
-- node: chjeck provider to determine if a node has been deleted after stop responding
-- route: settiung up routes in teh underlying dloud infrastructure
-- sercvice: create updsate eleted cloud provider load balancer
-- volume: create attach mounting volumens and interacting with the cloud provider to orchestrate volumes
+### Nodes: master and worker architecture
 
-#### kube-scheduler
+### 1. Master nodes (Control plane)
+The control plane manages the cluster's state. It is a best practice NOT to run application workloads on master nodes to ensure stability and security.
 
-watches new created pods and select a node for them to un on
-scheduling decision policy
+COMPONENTS:
 
-- resource requiresments
-- hardware software policy contraints
-- affinity of specifications
-- data locality
+- kube-apiserver: 
+  - The cluster's REST interface and gateway. 
+  - The ONLY component that communicates directly with etcd.
+  - All clients (kubectl, users, and other components) interact through this API.
 
-##### Worker nodes
+- etcd: 
+  - A consistent, high-availability key-value store.
+  - Acts as the "Single Source of Truth" for all cluster state data.
+  - Note: Not to be used as a database for application-specific data.
 
-nodes are physical or virtual machines
-nodes together forms a cluster
-nosdes running the contianers
+- kube-controller-manager: 
+  - The "Controller of Controllers."
+  - Manages various control loops, including:
+    - Node Controller: Manages node status.
+    - Replication Controller: Maintains the correct number of pods.
+    - Endpoints Controller: Populates endpoint objects (joining Services and Pods).
+    - Service Account & Token Controllers: Manages API access tokens.
 
-when adding a worker node to a cluster some kube services are added by default adn managed by the master node:
+- cloud-controller-manager: 
+  - Offloads cloud-specific control logic to interact with provider APIs (AWS, Azure, GCP, etc.).
+  - Manages Node (deletion checks), Route (network infra), Service (Load Balancers), and Volume (provisioning) controllers.
 
-- container runtime
-- kubelet -> manage pods lifecycle and ensure container in pods specs are running healthy
-- kube-proxy -> network proxy, manage network rules on nodes
+- kube-scheduler: 
+  - Assigns newly created Pods to specific Worker Nodes.
+  - Factors in requirements: Resource needs, hardware/software constraints, Affinity/Anti-affinity, and data locality.
 
-nodes pool
-group of virtual machine, with all the same size
-a cluster can have muiltple node pools:
+---
 
-- pools can hosts differnet size of vms
-- each pool can be autoscaled independenlty from other pools
+### 2. Worker nodes
+Physical or virtual machines where the actual application containers run.
 
-kubectl get nodes
-kubeclt describe node <node-name> -> node name is optional
+DEFAULT SERVICES (Managed by Master):
 
-you can direclty commmunicate with orchestration deployed in the cloud
+- Container Runtime: The engine that runs containers (e.g., containerd, CRI-O).
+- Kubelet: 
+  - The primary "node agent." 
+  - Communicates with the API server to ensure containers in Pod specs are running and healthy.
+- kube-proxy: 
+  - A network proxy that maintains network rules on the node.
+  - Enables communication to pods from inside or outside the cluster.
+
+---
+
+### 3. Node pools
+Groups of VMs within a cluster that share the same configuration (size, OS, labels).
+
+- Flexibility: A cluster can have multiple pools (e.g., one pool with high-CPU VMs and another with high-RAM).
+- Scaling: Each pool can be autoscaled independently based on workload demand.
+
+---
 
 ### Pods
 
