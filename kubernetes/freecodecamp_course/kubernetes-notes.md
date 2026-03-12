@@ -170,8 +170,8 @@ CLI COMMANDS
 
 ### Run Kubernetes locally
 
-docker desktop -> you can only run one node
-microk8s, minikube, kind => you can run multiple nodes
+docker desktop, minikube -> you can only run one node
+microk8s, kind => you can run multiple nodes
 
 ---
 
