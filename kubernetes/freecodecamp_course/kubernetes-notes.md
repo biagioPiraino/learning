@@ -235,17 +235,184 @@ Groups of VMs within a cluster that share the same configuration (size, OS, labe
 
 ### Pods
 
-represetn a unit of deployment and encapsulate a app contioner
-smallest unit
-run into nodes
-can un one or multiple containers
-container in a pod share:
+DEFINITION
+- Represent a unit of deployment that encapsulates one or more application containers.
+- Smallest deployable unit in Kubernetes.
+- Pods always run on Nodes.
 
-- ip address space
-- mounted volumes
-  container in a pod can commuicate via localhost
+CHARACTERISTICS
+- A Pod can run one or multiple tightly coupled containers.
+- Containers in the same Pod share:
+  - IP address space
+  - Mounted volumes
+  - Localhost networking (containers communicate via `localhost`)
 
-ephemeral
-don't update pod, you replace with new version (with new ip address)
+EPHEMERAL NATURE
+- Pods are ephemeral; they are not updated in-place.
+- To update, you replace a Pod with a new version (typically with a new IP address).
 
-you scale deploying more pods, not more containers inside the pod
+SCALING
+- You scale workloads by deploying more Pods, not by adding more containers into a single Pod.
+
+STATE AND LIFECYCLE
+- Pod state and lifecycle are managed by the API server in the control plane.
+- The current state is stored and visible in etcd.
+
+POD PHASES
+- Pending: Scheduled for creation, but not yet running.
+- Running: Pod has been bound to a node and at least one container is running.
+- Succeeded: All containers terminated successfully (exit with no error).
+- Failed: At least one container terminated with an error.
+- Unknown: The state of the Pod cannot be obtained (communication issue with the node).
+- CrashLoopBackOff: A container repeatedly fails, Kubernetes restarts it and it fails again.
+
+CLI COMMANDS (Pods)
+- Create from file (declarative):
+  kubectl create -f <file.yaml>
+- Run an ad-hoc Pod:
+  kubectl run <pod-name> --image=busybox -it -- /bin/sh
+- List Pods:
+  kubectl get pods
+- List Pods with more details:
+  kubectl get pods -o wide
+- Describe a Pod (events, state, etc.):
+  kubectl describe pod <pod-name>
+- Export a Pod definition to YAML:
+  kubectl get pod <pod-name> -o yaml > <file.yaml>
+- Execute a command inside a Pod:
+  kubectl exec -it <pod-name> -- sh
+- Delete from file:
+  kubectl delete -f <file.yaml>
+- Delete a specific Pod:
+  kubectl delete pod <pod-name>
+- Delete a Pod without waiting for grace period:
+  kubectl delete pod <pod-name> --wait=false
+- Force delete a Pod (no grace period):
+  kubectl delete pod <pod-name> --grace-period=0 --force
+
+INIT CONTAINERS
+- Initialize a Pod before the main application containers run.
+- Always run to completion.
+- You can define more than one; execution is sequential.
+- If an init container fails, the kubelet repeatedly restarts it until it succeeds
+  (unless `restartPolicy` is set to `Never`).
+- Great for validation or setting up infrastructure before application containers run.
+
+LABELS
+- Key/value pairs used to identify, describe, and group related sets of objects or resources.
+- Attached to objects such as Pods, Nodes, Services, Namespaces, etc.
+- Common examples:
+  - env=dev, env=prod
+  - app=frontend, app=backend
+  - nodeType=high-memory, gpu=true
+
+SELECTORS
+- Use labels to filter or select objects.
+- Used by many Kubernetes resources (Services, Deployments, ReplicaSets, Jobs, etc.).
+
+SCHEDULING WITH NODE LABELS
+- Nodes can be labeled (e.g., `nodeType=high-memory`, `zone=eu-west-1a`).
+- Pod specs can use those labels (e.g., `nodeSelector`, node affinity) to schedule Pods onto matching Nodes.
+- This is useful when different Nodes have different capacities or characteristics (CPU, RAM, GPU, region, etc.).
+
+SERVICES AND POD LABELS
+- A Service uses a label selector (`spec.selector`) to determine which Pods it routes traffic to.
+- The Service's selector must match the labels on the target Pods; only those Pods become Service endpoints.
+
+
+MULTI-CONTAINER PODS
+
+OVERVIEW
+- Most common scenario: one main container and one or more helper containers.
+- Helper containers support the main app (logging, proxying, side tasks, etc.).
+
+SIDECAR PATTERN
+- The main app focuses on core logic (e.g., writing log files to a local volume).
+- A sidecar container handles supporting work (e.g., shipping logs to persistent/cloud storage, reloading config).
+
+ADAPTER PATTERN
+- The main app produces complex or custom-formatted output (e.g., metrics or logs).
+- An adapter container transforms that output into a standard format expected by another system (e.g., monitoring/metrics service).
+
+AMBASSADOR PATTERN
+- The main app talks to a local "ambassador" container instead of directly to external services.
+- The ambassador container proxies and manages connections to external systems (e.g., databases, APIs, message queues).
+
+REFERENCE
+- These patterns are described in more detail in "Designing Distributed Systems" by Brendan Burns.
+
+CLI COMMANDS (Multi-container Pods)
+- Create a multi-container Pod from a YAML file:
+  kubectl create -f <file.yaml>
+- Exec into a specific container in a Pod:
+  kubectl exec -it <pod-name> -c <container-name> -- /bin/sh
+- View logs for a specific container in a Pod:
+  kubectl logs <pod-name> -c <container-name>
+
+
+NETWORK CONCEPTS
+- All containers within a Pod share the same network namespace and can communicate with each other over `localhost`.
+- By default (without NetworkPolicies), all Pods in the cluster can communicate with each other.
+- All Nodes can communicate with all Pods (cluster networking model).
+- Pods are given an IP address (ephemeral; changes when Pods are recreated).
+- Services are given a stable, virtual IP (`ClusterIP`) for as long as the Service exists.
+- Containers inside the same Pod also share volumes (in addition to IP/ports).
+- Containers in different Pods can communicate directly via Pod IPs, but Services are typically used to provide stable addressing and load balancing.
+- For external access, traffic commonly goes through:
+  - A Service of type `LoadBalancer` (cloud provider integration), or
+  - An Ingress (HTTP/HTTPS routing at L7).
+
+
+WORKLOADS
+
+REPLICA SETS
+- Ensure that the desired number of identical Pod replicas are running at any given time.
+- Provide basic self-healing: if a Pod dies, the ReplicaSet creates a replacement.
+- Maintain the "desired state" for a group of Pods based on label selectors.
+- In practice, you usually do not create ReplicaSets directly; you use Deployments.
+- Deployments provide more features (rollouts, rollbacks, updates) and manage ReplicaSets for you in the background.
+
+CLI COMMANDS (ReplicaSets)
+- Create a ReplicaSet from a definition file:
+  kubectl apply -f <definition.yaml>
+- List ReplicaSets:
+  kubectl get rs
+- Describe a specific ReplicaSet:
+  kubectl describe rs <rs-name>
+- Delete a ReplicaSet using the definition file:
+  kubectl delete -f <definition.yaml>
+- Delete a ReplicaSet by name:
+  kubectl delete rs <rs-name>
+
+DEPLOYMENTS
+
+PODS VS DEPLOYMENTS
+- Plain Pods do not self-heal, scale, update, or rollback automatically.
+- A Deployment manages a Pod template and ensures the desired state via one or more ReplicaSets.
+- Typically, you create one Deployment per microservice you are running.
+- Deployments create and manage ReplicaSets for self-healing and scalability and, on top of that, manage updates and rollbacks.
+
+KEY SETTINGS
+- `replicas`: Number of Pod instances to run.
+- `revisionHistoryLimit`: Number of previous ReplicaSet revisions to keep (for rollbacks).
+- `strategy`:
+  - `RollingUpdate`: Gradually cycle through Pods, updating them in batches.
+  - `Recreate`: Delete all existing Pods before creating new ones.
+
+CLI COMMANDS (Deployments)
+- Imperative: create a Deployment:
+  kubectl create deploy <deployment-name> --image=busybox --replicas=3 --port=80
+- Declarative: create/update a Deployment from a definition file:
+  kubectl apply -f <definition.yaml>
+- List Deployments:
+  kubectl get deploy
+- Describe a specific Deployment:
+  kubectl describe deploy <deployment-name>
+- List ReplicaSets created by Deployments:
+  kubectl get rs
+- Delete a Deployment using the definition file:
+  kubectl delete -f <definition.yaml>
+- Delete a Deployment by name:
+  kubectl delete deploy <deployment-name>
+
+
