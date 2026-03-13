@@ -290,7 +290,9 @@ CLI COMMANDS (Pods)
 - Force delete a Pod (no grace period):
   kubectl delete pod <pod-name> --grace-period=0 --force
 
-INIT CONTAINERS
+---
+
+### INIT CONTAINERS
 - Initialize a Pod before the main application containers run.
 - Always run to completion.
 - You can define more than one; execution is sequential.
@@ -298,7 +300,9 @@ INIT CONTAINERS
   (unless `restartPolicy` is set to `Never`).
 - Great for validation or setting up infrastructure before application containers run.
 
-LABELS
+---
+
+### LABELS
 - Key/value pairs used to identify, describe, and group related sets of objects or resources.
 - Attached to objects such as Pods, Nodes, Services, Namespaces, etc.
 - Common examples:
@@ -306,7 +310,9 @@ LABELS
   - app=frontend, app=backend
   - nodeType=high-memory, gpu=true
 
-SELECTORS
+---
+
+### SELECTORS
 - Use labels to filter or select objects.
 - Used by many Kubernetes resources (Services, Deployments, ReplicaSets, Jobs, etc.).
 
@@ -319,8 +325,9 @@ SERVICES AND POD LABELS
 - A Service uses a label selector (`spec.selector`) to determine which Pods it routes traffic to.
 - The Service's selector must match the labels on the target Pods; only those Pods become Service endpoints.
 
+---
 
-MULTI-CONTAINER PODS
+### MULTI-CONTAINER PODS
 
 OVERVIEW
 - Most common scenario: one main container and one or more helper containers.
@@ -349,8 +356,10 @@ CLI COMMANDS (Multi-container Pods)
 - View logs for a specific container in a Pod:
   kubectl logs <pod-name> -c <container-name>
 
+---
 
-NETWORK CONCEPTS
+### NETWORK CONCEPTS
+
 - All containers within a Pod share the same network namespace and can communicate with each other over `localhost`.
 - By default (without NetworkPolicies), all Pods in the cluster can communicate with each other.
 - All Nodes can communicate with all Pods (cluster networking model).
@@ -362,10 +371,11 @@ NETWORK CONCEPTS
   - A Service of type `LoadBalancer` (cloud provider integration), or
   - An Ingress (HTTP/HTTPS routing at L7).
 
+---
 
-WORKLOADS
+### WORKLOADS
 
-REPLICA SETS
+### REPLICA SETS
 - Ensure that the desired number of identical Pod replicas are running at any given time.
 - Provide basic self-healing: if a Pod dies, the ReplicaSet creates a replacement.
 - Maintain the "desired state" for a group of Pods based on label selectors.
@@ -384,7 +394,9 @@ CLI COMMANDS (ReplicaSets)
 - Delete a ReplicaSet by name:
   kubectl delete rs <rs-name>
 
-DEPLOYMENTS
+---
+
+### DEPLOYMENTS
 
 PODS VS DEPLOYMENTS
 - Plain Pods do not self-heal, scale, update, or rollback automatically.
@@ -415,4 +427,126 @@ CLI COMMANDS (Deployments)
 - Delete a Deployment by name:
   kubectl delete deploy <deployment-name>
 
+---
+ 
+### DAEMONSETS
+
+DEFINITION
+- Ensure that all Nodes (or a selected subset) run exactly one Pod instance.
+- As Nodes are added to the cluster, the DaemonSet automatically schedules a Pod onto those Nodes.
+- Commonly used for node-level “daemon” workloads.
+
+HOW IT WORKS (High level)
+- The DaemonSet controller ensures the desired Pod is running on matching Nodes.
+- The scheduler handles placement in most cases (unless you use special patterns like `hostNetwork`/`nodeName`).
+
+COMMON USE CASES
+- Cluster storage daemons.
+- Log collection agents on every Node.
+- Node monitoring agents on every Node.
+
+CLI COMMANDS (DaemonSets)
+- Create/update a DaemonSet from a definition file:
+  kubectl apply -f <definition.yaml>
+- List DaemonSets:
+  kubectl get ds
+- Describe a specific DaemonSet:
+  kubectl describe ds <ds-name>
+- Delete a DaemonSet using the definition file:
+  kubectl delete -f <definition.yaml>
+- Delete a DaemonSet by name:
+  kubectl delete ds <ds-name>
+
+--- 
+
+### STATEFULSETS
+
+DEFINITION
+- Designed for workloads that need stable identity and persistent state.
+- Each Pod gets a **sticky identity**:
+  - Stable Pod name/ordinal (e.g., `app-0`, `app-1`, ...)
+  - Stable network identity (via a **headless Service**)
+  - Stable storage (PersistentVolumes via PVCs)
+
+BEHAVIOR
+- Pods are created **in order** (0 → N) and typically terminated **in reverse order** (N → 0).
+- If a Pod dies, it is recreated with the **same identity** (name/ordinal).
+- Volumes are **not automatically deleted** when Pods are deleted; the point is to preserve data.
+
+WHEN TO USE
+- Stable, unique network identifiers.
+- Stateful applications such as databases and distributed systems that require persistent storage.
+
+PRACTICAL NOTE
+- If you can, prefer managed/cloud databases for built-in replication, backups, and HA rather than self-managing stateful workloads in-cluster.
+
+CLI COMMANDS (StatefulSets)
+- Create/update a StatefulSet from a definition file:
+  kubectl apply -f <definition.yaml>
+- List StatefulSets:
+  kubectl get sts
+- Describe a specific StatefulSet:
+  kubectl describe sts <sts-name>
+- Delete a StatefulSet using the definition file:
+  kubectl delete -f <definition.yaml>
+- Delete a StatefulSet by name:
+  kubectl delete sts <sts-name>
+
+---
+
+### JOBS
+
+DEFINITION
+- Workloads for **short-lived, finite tasks**.
+- A Job creates one or more Pods and ensures a specified number of them **successfully complete**.
+
+BEHAVIOR
+- As Pods complete, the Job tracks successful completions.
+- When the required number of successful completions is reached, the Job is considered **complete**.
+- By default, Jobs with multiple Pods may run them sequentially; you can configure **parallelism** and **completions** for parallel execution.
+
+COMMON USE CASES
+- One-off batch tasks.
+- Data processing jobs.
+- Maintenance or migration scripts that must eventually complete.
+
+CLI COMMANDS (Jobs)
+- Imperative: create a Job:
+  kubectl create job <job-name> --image=busybox
+- Declarative: create/update a Job from a definition file:
+  kubectl apply -f <definition.yaml>
+- List Jobs:
+  kubectl get job
+- Describe a specific Job:
+  kubectl describe job <job-name>
+- Delete a Job using the definition file:
+  kubectl delete -f <definition.yaml>
+- Delete a Job by name:
+  kubectl delete job <job-name>
+
+---
+
+### CRONJOBS
+
+DEFINITION
+- A CronJob creates Jobs on a repeating schedule (like `cron`).
+- Think of it as a scheduled Job runner.
+
+SCHEDULING NOTES
+- CronJob schedules are interpreted using the controller's time zone (commonly UTC in managed clusters).
+- Newer Kubernetes versions support specifying a `timeZone` field; otherwise, plan assuming UTC.
+
+CLI COMMANDS (CronJobs)
+- Imperative: create a CronJob (runs every minute):
+  kubectl create cronjob <cronjob-name> --image=busybox --schedule="*/1 * * * *" -- /bin/sh -c "date;"
+- Declarative: create/update a CronJob from a definition file:
+  kubectl apply -f <definition.yaml>
+- List CronJobs:
+  kubectl get cj
+- Describe a specific CronJob:
+  kubectl describe cj <cronjob-name>
+- Delete a CronJob using the definition file:
+  kubectl delete -f <definition.yaml>
+- Delete a CronJob by name:
+  kubectl delete cj <cronjob-name>
 
